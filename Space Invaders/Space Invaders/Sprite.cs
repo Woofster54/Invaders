@@ -14,11 +14,12 @@ namespace Space_Invaders
         {
             get
             {
-                return new Rectangle((int)Pos.X, (int)Pos.Y, (int)(Image.Width * Scale), (int)(Image.Height * Scale));
+                return new Rectangle((int)Pos.X, (int)Pos.Y, (int)(Image.Width * Scale.X), (int)(Image.Height * Scale.Y));
             }
+            
 
         }
-        public Sprite(Vector2 pos, float scale, Texture2D image, Color color)
+        public Sprite(Vector2 pos, Vector2 scale, Texture2D image, Color color)
         {
             Pos = pos;
             Scale = scale;
@@ -27,7 +28,7 @@ namespace Space_Invaders
         }
         
         public Vector2 Pos { get; set; }
-        public float Scale { get; set; }
+        public Vector2 Scale { get; set; }
         public Texture2D Image { get; set; }
         public Color Color { get; set; }
         public void Draw(SpriteBatch sprite)

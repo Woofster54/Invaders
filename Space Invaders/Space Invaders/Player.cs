@@ -10,7 +10,7 @@ namespace Space_Invaders
 {
     class Player : Sprite
     {
-        public Player(Vector2 pos, int scale, Texture2D image, Color color) : base(pos, scale, image, color)
+        public Player(Vector2 pos, Vector2 scale, Texture2D image, Color color) : base(pos, scale, image, color)
         {
         }
         public void MoveLeft()

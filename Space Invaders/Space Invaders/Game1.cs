@@ -38,16 +38,22 @@ namespace Space_Invaders
         Enemy Boss;
         Texture2D BigBoy;
         int bosshp = 50;
+        bool activatelaser = false;
 
-        Texture2D laser;
+        Texture2D laserimage;
         SoundEffect EnemySound;
 
         SpriteFont LivesFont;
         SpriteFont font;
         SpriteFont WinFont;
 
+        Laser laser;
+
         Random rnd = new Random();
-        
+
+        TimeSpan delay1;
+
+
         TimeSpan delay = TimeSpan.FromMilliseconds(2500);
         TimeSpan current = TimeSpan.Zero;
 
@@ -94,7 +100,7 @@ namespace Space_Invaders
             LivesFont = Content.Load<SpriteFont>("LifeFont");
             WinFont = Content.Load<SpriteFont>("WIN");
 
-            laser = Content.Load<Texture2D>("LASER");
+            laserimage = Content.Load<Texture2D>("LASER");
 
             BigBoy = Content.Load<Texture2D>("BOSS2.0");
 
@@ -103,8 +109,9 @@ namespace Space_Invaders
             EnemySound = Content.Load<SoundEffect>("EnemyShotSound");
            
        
-            playership = new Player(new Vector2(550, GraphicsDevice.Viewport.Height - 50), 1, player, Color.LightSteelBlue);
-            Boss = new Enemy(new Vector2(350, 0), 4.3f, BigBoy, Color.DarkRed);
+            playership = new Player(new Vector2(550, GraphicsDevice.Viewport.Height - 50), Vector2.One, player, Color.LightSteelBlue);
+            Boss = new Enemy(new Vector2(350, 0), new Vector2(3.7f, 3.7f), BigBoy, Color.DarkRed);
+            laser = new Laser(new Vector2(Boss.Pos.X + 50, Boss.Pos.Y + 100), Vector2.One, laserimage, Color.White, 200);
 
             int startx = 25;
             int starty = 35;
@@ -126,15 +133,15 @@ namespace Space_Invaders
                 }
                 if (count == 0)
                 {
-                    enemies.Add(new Enemy(new Vector2(startx, starty), 1, Enemy1, Color.Lime));
+                    enemies.Add(new Enemy(new Vector2(startx, starty), Vector2.One, Enemy1, Color.Lime));
                 }
                 else if (count == 1)
                 {
-                    enemies.Add(new Enemy(new Vector2(startx, starty), 1, Enemy2, Color.DarkGreen));
+                    enemies.Add(new Enemy(new Vector2(startx, starty), Vector2.One, Enemy2, Color.DarkGreen));
                 }
                 else
                 {
-                    enemies.Add(new Enemy(new Vector2(startx, starty), 1, Enemy3, Color.LawnGreen));
+                    enemies.Add(new Enemy(new Vector2(startx, starty), Vector2.One, Enemy3, Color.LawnGreen));
                 }
 
                 startx += gap + Enemy1.Width;
@@ -200,7 +207,7 @@ namespace Space_Invaders
                             ChosenShot = rnd.Next(enemies.Count);
                         }
                         EnemySound.Play();
-                        EShot = new Projectile(new Vector2(enemies[ChosenShot].Pos.X, enemies[ChosenShot].Pos.Y), 1, 8, EnemyShot, Color.White);
+                        EShot = new Projectile(new Vector2(enemies[ChosenShot].Pos.X, enemies[ChosenShot].Pos.Y), Vector2.One, 8, EnemyShot, Color.White);
                         current = TimeSpan.Zero;
 
 
@@ -217,7 +224,7 @@ namespace Space_Invaders
                     if (Keyboard.GetState().IsKeyDown(Keys.Space) && shot == null)
                     {
                         Shot.Play();
-                        shot = new Projectile(new Vector2(playership.Pos.X, playership.Pos.Y), 1, -8, PlayerShot, Color.White);
+                        shot = new Projectile(new Vector2(playership.Pos.X, playership.Pos.Y), Vector2.One, -8, PlayerShot, Color.White);
                     }
                     if (shot != null && EShot != null && shot.Hitbox.Intersects(EShot.Hitbox) == true)
                     {
@@ -269,8 +276,10 @@ namespace Space_Invaders
                 shot = null;
                 bosshp--;
             }
-            if (DeadCount == 30)
+            if (DeadCount == 30 && bosshp > 0)
             {
+                delay = TimeSpan.FromSeconds(5);
+              
                 if (Boss.Pos.X + Boss.Hitbox.Width >= GraphicsDevice.Viewport.Width)
                 {
                     Boss.IsMovingRight = false;
@@ -279,6 +288,25 @@ namespace Space_Invaders
                 {
                     Boss.IsMovingRight = true;
                 }
+                current += gameTime.ElapsedGameTime;
+                if (current >= delay)
+                {
+                    activatelaser = true;
+                    current = TimeSpan.Zero;
+                }
+                if (activatelaser == true)
+                {
+                    laser.Update(gameTime);
+                    delay1 = TimeSpan.FromSeconds(4);
+                    current += gameTime.ElapsedGameTime;
+                    if (current >= delay1)
+                    {
+                        current = TimeSpan.Zero;
+                        activatelaser = false;
+                    }
+                }
+              
+               
                 Boss.Update(gameTime, GraphicsDevice);
             }
             base.Update(gameTime);
@@ -303,7 +331,7 @@ namespace Space_Invaders
             }
             // TODO: Add your drawing code here
             if (shot != null) shot.Draw(spriteBatch);
-            spriteBatch.DrawString(LivesFont, $"Lives: {Lives}", new Vector2(10, 11), Color.Black);
+            spriteBatch.DrawString(LivesFont, $"Lives: {Lives}", new Vector2(10, 11), Color.White);
 
 
             if (!PlayerHit)
@@ -338,6 +366,10 @@ namespace Space_Invaders
                 else
                 {
                     spriteBatch.DrawString(WinFont, "YOU WIN!", new Vector2(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2), Color.White);
+                }
+                if (activatelaser == true)
+                {
+                    laser.Draw(spriteBatch);
                 }
             }
 

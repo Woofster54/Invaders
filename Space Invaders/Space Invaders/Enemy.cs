@@ -15,7 +15,7 @@ namespace Space_Invaders
         public bool IsMovingRight = true;
         public bool GoDown = false;
         public bool IsHit = false;
-        public Enemy(Vector2 pos, float scale, Texture2D image, Color color) : base(pos, scale, image, color)
+        public Enemy(Vector2 pos, Vector2 scale, Texture2D image, Color color) : base(pos, scale, image, color)
         {
         }
         public void Update(GameTime gametime, GraphicsDevice gfx)

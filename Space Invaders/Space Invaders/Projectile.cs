@@ -11,7 +11,7 @@ namespace Space_Invaders
     class Projectile : Sprite
     {
         
-        public Projectile(Vector2 pos, int scale, int speed, Texture2D image, Color color) : base(pos, scale, image, color)
+        public Projectile(Vector2 pos, Vector2 scale, int speed, Texture2D image, Color color) : base(pos, scale, image, color)
         {
             Speed = speed;
         }
