@@ -32,7 +32,10 @@ namespace Space_Invaders
         {
             Scale = new Vector2(Scale.X, Scale.Y + 2.4f);
         }
-
+        public void ResetScale()
+        {
+            Scale = new Vector2(1, 1);
+        }
         //reset scale function
     }
 }

@@ -54,7 +54,7 @@ namespace Space_Invaders
         TimeSpan delay1;
 
 
-        TimeSpan delay = TimeSpan.FromMilliseconds(2500);
+        TimeSpan delay = TimeSpan.FromMilliseconds(5000);
         TimeSpan current = TimeSpan.Zero;
 
         public Game1()
@@ -111,7 +111,7 @@ namespace Space_Invaders
        
             playership = new Player(new Vector2(550, GraphicsDevice.Viewport.Height - 50), Vector2.One, player, Color.LightSteelBlue);
             Boss = new Enemy(new Vector2(350, 0), new Vector2(3.7f, 3.7f), BigBoy, Color.DarkRed);
-            laser = new Laser(new Vector2(Boss.Pos.X + 50, Boss.Pos.Y + 100), Vector2.One, laserimage, Color.White, 200);
+            laser = new Laser(new Vector2(Boss.Pos.X + 70, Boss.Pos.Y + 300), Vector2.One, laserimage, Color.White, 200);
 
             int startx = 25;
             int starty = 35;
@@ -169,33 +169,33 @@ namespace Space_Invaders
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
             bool EndOfRow = false;
-            
 
-                if (!PlayerHit)
+
+            if (!PlayerHit)
+            {
+                for (int i = 0; i < enemies.Count; i++)
                 {
-                    for (int i = 0; i < enemies.Count; i++)
+                    if (enemies[i].IsMovingRight == true && enemies[i].Pos.X + enemies[i].Image.Width >= GraphicsDevice.Viewport.Width && enemies[i].IsHit == false)
                     {
-                        if (enemies[i].IsMovingRight == true && enemies[i].Pos.X + enemies[i].Image.Width >= GraphicsDevice.Viewport.Width && enemies[i].IsHit == false)
-                        {
-                            EndOfRow = true;
-
-                        }
-                        else if (enemies[i].IsMovingRight == false && enemies[i].Pos.X - 5 <= 0)
-                        {
-                            EndOfRow = true;
-                        }
+                        EndOfRow = true;
 
                     }
-                    foreach (var enemy in enemies)
+                    else if (enemies[i].IsMovingRight == false && enemies[i].Pos.X - 5 <= 0)
                     {
-                        if (EndOfRow == true)
-                        {
-                            enemy.GoDown = true;
-
-                        }
-                        enemy.Update(gameTime, GraphicsDevice);
+                        EndOfRow = true;
                     }
-                    current += gameTime.ElapsedGameTime;
+
+                }
+                foreach (var enemy in enemies)
+                {
+                    if (EndOfRow == true)
+                    {
+                        enemy.GoDown = true;
+
+                    }
+                    enemy.Update(gameTime, GraphicsDevice);
+                }
+                current += gameTime.ElapsedGameTime;
                 if (DeadCount < 30)
                 {
                     if (current >= delay)
@@ -213,102 +213,123 @@ namespace Space_Invaders
 
                     }
                 }
-                    if (Keyboard.GetState().IsKeyDown(Keys.Left))
+                if (Keyboard.GetState().IsKeyDown(Keys.N))
+                {
+                    foreach (var enemy in enemies)
                     {
-                        playership.MoveLeft();
+                        enemy.IsHit = true;
+                        DeadCount = 30;
                     }
-                    else if (Keyboard.GetState().IsKeyDown(Keys.Right))
+                }
+                if (Keyboard.GetState().IsKeyDown(Keys.Left))
+                {
+                    playership.MoveLeft();
+                }
+                else if (Keyboard.GetState().IsKeyDown(Keys.Right))
+                {
+                    playership.MoveRight(GraphicsDevice);
+                }
+                if (Keyboard.GetState().IsKeyDown(Keys.Space) && shot == null)
+                {
+                    Shot.Play();
+                    shot = new Projectile(new Vector2(playership.Pos.X, playership.Pos.Y), Vector2.One, -8, PlayerShot, Color.White);
+                }
+                if (shot != null && EShot != null && shot.Hitbox.Intersects(EShot.Hitbox) == true)
+                {
+                    shot = null;
+                    EShot = null;
+                }
+                if (shot != null && (shot.Pos.Y <= 0))
+                {
+                    shot = null;
+                }
+                for (int i = 0; i < enemies.Count; i++)
+                {
+
+
+                    if (shot != null && shot.Hitbox.Intersects(enemies[i].Hitbox) && enemies[i].IsHit == false)
                     {
-                        playership.MoveRight(GraphicsDevice);
-                    }
-                    if (Keyboard.GetState().IsKeyDown(Keys.Space) && shot == null)
-                    {
-                        Shot.Play();
-                        shot = new Projectile(new Vector2(playership.Pos.X, playership.Pos.Y), Vector2.One, -8, PlayerShot, Color.White);
-                    }
-                    if (shot != null && EShot != null && shot.Hitbox.Intersects(EShot.Hitbox) == true)
-                    {
+
                         shot = null;
-                        EShot = null;
-                    }
-                    if (shot != null && (shot.Pos.Y <= 0))
-                    {
-                        shot = null;
-                    }
-                    for (int i = 0; i < enemies.Count; i++)
-                    {
-
-
-                        if (shot != null && shot.Hitbox.Intersects(enemies[i].Hitbox) && enemies[i].IsHit == false)
-                        {
-
-                            shot = null;
-                            enemies[i].IsHit = true;
-                            DeadCount++;
-                            enemies.Remove(enemies[i]);
+                        enemies[i].IsHit = true;
+                        DeadCount++;
+                        enemies.Remove(enemies[i]);
                         Explosion.Play();
+                    }
+                }
+
+                if (EShot != null && EShot.Hitbox.Intersects(playership.Hitbox))
+                {
+                    EShot = null;
+                    Lives--;
+                    PlayerHit = true;
+
+                }
+                if (shot != null)
+                {
+                    shot.Update();
+                }
+                if (EShot != null)
+                {
+                    EShot.Update();
+                }
+
+
+
+                if (DeadCount == 30 && shot != null && shot.Hitbox.Intersects(Boss.Hitbox))
+                {
+                    shot = null;
+                    bosshp--;
+                }
+                if (DeadCount == 30 && bosshp > 0)
+                {
+                    delay = TimeSpan.FromSeconds(10);
+
+                    if (Boss.Pos.X + Boss.Hitbox.Width >= GraphicsDevice.Viewport.Width)
+                    {
+                        Boss.IsMovingRight = false;
+                    }
+                    else if (Boss.Pos.X <= 0)
+                    {
+                        Boss.IsMovingRight = true;
+                    }
+                    current += gameTime.ElapsedGameTime;
+                    if (current >= delay)
+                    {
+                        activatelaser = true;
+                        current = TimeSpan.Zero;
+                    }
+                    if (activatelaser == true)
+                    {
+                        laser.Pos = new Vector2(Boss.Pos.X + 65, Boss.Pos.Y + 300);
+                        laser.Update(gameTime);
+                        delay1 = TimeSpan.FromSeconds(4);
+                        current += gameTime.ElapsedGameTime;
+                        if (current >= delay1)
+                        {
+                            laser.ResetScale();
+                            current = TimeSpan.Zero;
+                            activatelaser = false;
+
+                        }
+                        if (playership.Hitbox.Intersects(laser.Hitbox))
+                        {
+                            PlayerHit = true;
+                            Lives--;
+                            activatelaser = false;
                         }
                     }
 
-                    if (EShot != null && EShot.Hitbox.Intersects(playership.Hitbox))
-                    {
-                        EShot = null;
-                        Lives--;
-                        PlayerHit = true;
 
-                    }
-                    if (shot != null)
-                    {
-                        shot.Update();
-                    }
-                    if (EShot != null)
-                    {
-                        EShot.Update();
-                    }
 
+                    Boss.Update(gameTime, GraphicsDevice);
                 }
+            }
                 if (Lives != 0 && PlayerHit == true && Keyboard.GetState().IsKeyDown(Keys.Enter))
                 {
                     PlayerHit = false;
                 }
-            if (DeadCount ==   30 && shot != null && shot.Hitbox.Intersects(Boss.Hitbox))
-            {
-                shot = null;
-                bosshp--;
-            }
-            if (DeadCount == 30 && bosshp > 0)
-            {
-                delay = TimeSpan.FromSeconds(5);
-              
-                if (Boss.Pos.X + Boss.Hitbox.Width >= GraphicsDevice.Viewport.Width)
-                {
-                    Boss.IsMovingRight = false;
-                }
-                else if (Boss.Pos.X <= 0)
-                {
-                    Boss.IsMovingRight = true;
-                }
-                current += gameTime.ElapsedGameTime;
-                if (current >= delay)
-                {
-                    activatelaser = true;
-                    current = TimeSpan.Zero;
-                }
-                if (activatelaser == true)
-                {
-                    laser.Update(gameTime);
-                    delay1 = TimeSpan.FromSeconds(4);
-                    current += gameTime.ElapsedGameTime;
-                    if (current >= delay1)
-                    {
-                        current = TimeSpan.Zero;
-                        activatelaser = false;
-                    }
-                }
-              
-               
-                Boss.Update(gameTime, GraphicsDevice);
-            }
+          
             base.Update(gameTime);
         }
 
@@ -346,6 +367,7 @@ namespace Space_Invaders
             }
             else if (PlayerHit && Lives == 0)
             {
+                GraphicsDevice.Clear(Color.Black);
                 spriteBatch.DrawString(font, "Game Over", new Vector2(425, 11), Color.Red);
             }
             if (DeadCount == 30)
