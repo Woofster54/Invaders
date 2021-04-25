@@ -14,7 +14,7 @@ namespace Space_Invaders
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
-       
+
         Texture2D Enemy1;
         Texture2D Enemy2;
         Texture2D Enemy3;
@@ -31,6 +31,10 @@ namespace Space_Invaders
         Texture2D EnemyShot;
         Projectile shot;
         Projectile EShot;
+        Projectile BossShot;
+
+        Texture2D BossBullet;
+
 
         SoundEffect Shot;
         SoundEffect Explosion;
@@ -39,6 +43,8 @@ namespace Space_Invaders
         Texture2D BigBoy;
         int bosshp = 50;
         bool activatelaser = false;
+
+        bool ShootBossBullet = false;
 
         Texture2D laserimage;
         SoundEffect EnemySound;
@@ -52,10 +58,13 @@ namespace Space_Invaders
         Random rnd = new Random();
 
         TimeSpan delay1;
+        TimeSpan BulletDelay;
 
 
         TimeSpan delay = TimeSpan.FromMilliseconds(5000);
         TimeSpan current = TimeSpan.Zero;
+        TimeSpan BulletCurrent = TimeSpan.Zero;
+        TimeSpan LaserCurrent = TimeSpan.Zero;
 
         public Game1()
         {
@@ -71,6 +80,7 @@ namespace Space_Invaders
         /// </summary>
         protected override void Initialize()
         {
+
             // TODO: Add your initialization logic here
             IsMouseVisible = true;
             graphics.PreferredBackBufferWidth = 1100;
@@ -95,6 +105,7 @@ namespace Space_Invaders
 
             PlayerShot = Content.Load<Texture2D>("PlayerShot");
             EnemyShot = Content.Load<Texture2D>("projectile-green");
+            BossBullet = Content.Load<Texture2D>("BossProjectile");
 
             font = Content.Load<SpriteFont>("Font");
             LivesFont = Content.Load<SpriteFont>("LifeFont");
@@ -107,11 +118,15 @@ namespace Space_Invaders
             Explosion = Content.Load<SoundEffect>("Explosion");
             Shot = Content.Load<SoundEffect>("Blaster");
             EnemySound = Content.Load<SoundEffect>("EnemyShotSound");
-           
-       
+
+
             playership = new Player(new Vector2(550, GraphicsDevice.Viewport.Height - 50), Vector2.One, player, Color.LightSteelBlue);
             Boss = new Enemy(new Vector2(350, 0), new Vector2(3.7f, 3.7f), BigBoy, Color.DarkRed);
             laser = new Laser(new Vector2(Boss.Pos.X + 70, Boss.Pos.Y + 300), Vector2.One, laserimage, Color.White, 200);
+
+            delay = TimeSpan.FromSeconds(5);
+            BulletDelay = TimeSpan.FromSeconds(10);
+            delay1 = TimeSpan.FromSeconds(4);
 
             int startx = 25;
             int starty = 35;
@@ -120,9 +135,6 @@ namespace Space_Invaders
             int count = 0;
             for (int i = 0; i < 30; i++)
             {
-
-
-
 
                 if (i != 0 && i % 10 == 0)
                 {
@@ -159,6 +171,44 @@ namespace Space_Invaders
             // TODO: Unload any non ContentManager content here
         }
 
+
+        void ResetGame()
+        {
+
+            enemies.Clear();
+            DeadCount = 0;
+            bosshp = 50;
+            int startx = 25;
+            int starty = 35;
+            int gap = 15;
+            int ygap = 65;
+            int count = 0;
+            for (int i = 0; i < 30; i++)
+            {
+                if (i != 0 && i % 10 == 0)
+                {
+                    starty += ygap;
+                    startx = 25;
+                    count++;
+
+                }
+                if (count == 0)
+                {
+                    enemies.Add(new Enemy(new Vector2(startx, starty), Vector2.One, Enemy1, Color.Lime));
+                }
+                else if (count == 1)
+                {
+                    enemies.Add(new Enemy(new Vector2(startx, starty), Vector2.One, Enemy2, Color.DarkGreen));
+                }
+                else
+                {
+                    enemies.Add(new Enemy(new Vector2(startx, starty), Vector2.One, Enemy3, Color.LawnGreen));
+                }
+
+                startx += gap + Enemy1.Width;
+            }
+        }
+
         /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
@@ -173,31 +223,60 @@ namespace Space_Invaders
 
             if (!PlayerHit)
             {
-                for (int i = 0; i < enemies.Count; i++)
+                //restart game
+                if (Keyboard.GetState().IsKeyDown(Keys.Tab))
                 {
-                    if (enemies[i].IsMovingRight == true && enemies[i].Pos.X + enemies[i].Image.Width >= GraphicsDevice.Viewport.Width && enemies[i].IsHit == false)
-                    {
-                        EndOfRow = true;
-
-                    }
-                    else if (enemies[i].IsMovingRight == false && enemies[i].Pos.X - 5 <= 0)
-                    {
-                        EndOfRow = true;
-                    }
-
+                    ResetGame();
                 }
-                foreach (var enemy in enemies)
+                //skip to boss cheat
+                if (Keyboard.GetState().IsKeyDown(Keys.N))
                 {
-                    if (EndOfRow == true)
+                    foreach (var enemy in enemies)
                     {
-                        enemy.GoDown = true;
-
+                        enemy.IsHit = true;
+                        DeadCount = 30;
                     }
-                    enemy.Update(gameTime, GraphicsDevice);
                 }
-                current += gameTime.ElapsedGameTime;
+                //move left and right
+                if (Keyboard.GetState().IsKeyDown(Keys.Left))
+                {
+                    playership.MoveLeft();
+                }
+                else if (Keyboard.GetState().IsKeyDown(Keys.Right))
+                {
+                    playership.MoveRight(GraphicsDevice);
+                }
+                //move enemies as long as there are enemies
                 if (DeadCount < 30)
                 {
+                    //check if enemy reaches end of row
+                    for (int i = 0; i < enemies.Count; i++)
+                    {
+                        if (enemies[i].IsMovingRight == true && enemies[i].Pos.X + enemies[i].Image.Width >= GraphicsDevice.Viewport.Width && enemies[i].IsHit == false)
+                        {
+                            EndOfRow = true;
+
+                        }
+                        else if (enemies[i].IsMovingRight == false && enemies[i].Pos.X - 5 <= 0)
+                        {
+                            EndOfRow = true;
+                        }
+
+                    }
+                    //move enemies down
+                    foreach (var enemy in enemies)
+                    {
+                        if (EndOfRow == true)
+                        {
+                            enemy.GoDown = true;
+
+                        }
+                        enemy.Update(gameTime, GraphicsDevice);
+                    }
+
+
+                    //enemy shooting
+                    current += gameTime.ElapsedGameTime;
                     if (current >= delay)
                     {
                         ChosenShot = rnd.Next(enemies.Count);
@@ -213,36 +292,24 @@ namespace Space_Invaders
 
                     }
                 }
-                if (Keyboard.GetState().IsKeyDown(Keys.N))
-                {
-                    foreach (var enemy in enemies)
-                    {
-                        enemy.IsHit = true;
-                        DeadCount = 30;
-                    }
-                }
-                if (Keyboard.GetState().IsKeyDown(Keys.Left))
-                {
-                    playership.MoveLeft();
-                }
-                else if (Keyboard.GetState().IsKeyDown(Keys.Right))
-                {
-                    playership.MoveRight(GraphicsDevice);
-                }
+                //If no bullet shoot
                 if (Keyboard.GetState().IsKeyDown(Keys.Space) && shot == null)
                 {
                     Shot.Play();
                     shot = new Projectile(new Vector2(playership.Pos.X, playership.Pos.Y), Vector2.One, -8, PlayerShot, Color.White);
                 }
+                //if bullets collide, get rid of both bulllets
                 if (shot != null && EShot != null && shot.Hitbox.Intersects(EShot.Hitbox) == true)
                 {
                     shot = null;
                     EShot = null;
                 }
+                //if bullet reaches top of screen, get rid of bullet
                 if (shot != null && (shot.Pos.Y <= 0))
                 {
                     shot = null;
                 }
+                //if enemy is hit, then remove enemy
                 for (int i = 0; i < enemies.Count; i++)
                 {
 
@@ -253,11 +320,10 @@ namespace Space_Invaders
                         shot = null;
                         enemies[i].IsHit = true;
                         DeadCount++;
-                        enemies.Remove(enemies[i]);
                         Explosion.Play();
                     }
                 }
-
+                //if enemy shot hits player, remove life
                 if (EShot != null && EShot.Hitbox.Intersects(playership.Hitbox))
                 {
                     EShot = null;
@@ -265,10 +331,12 @@ namespace Space_Invaders
                     PlayerHit = true;
 
                 }
+                //if shot is active, update it
                 if (shot != null)
                 {
                     shot.Update();
                 }
+                //if enemy shot is active, update it
                 if (EShot != null)
                 {
                     EShot.Update();
@@ -283,7 +351,16 @@ namespace Space_Invaders
                 }
                 if (DeadCount == 30 && bosshp > 0)
                 {
-                    delay = TimeSpan.FromSeconds(10);
+                    BulletCurrent += gameTime.ElapsedGameTime;
+                    if (BulletCurrent >= BulletDelay)
+                    {
+                        ShootBossBullet = true;
+                        BulletCurrent = TimeSpan.Zero;
+                    }
+                    if (ShootBossBullet == true)
+                    {
+                        BossShot = new Projectile(new Vector2(Boss.Pos.X - 15, Boss.Pos.Y), Vector2.One, 3, BossBullet, Color.White);
+                    }
 
                     if (Boss.Pos.X + Boss.Hitbox.Width >= GraphicsDevice.Viewport.Width)
                     {
@@ -293,6 +370,7 @@ namespace Space_Invaders
                     {
                         Boss.IsMovingRight = true;
                     }
+
                     current += gameTime.ElapsedGameTime;
                     if (current >= delay)
                     {
@@ -303,20 +381,22 @@ namespace Space_Invaders
                     {
                         laser.Pos = new Vector2(Boss.Pos.X + 65, Boss.Pos.Y + 300);
                         laser.Update(gameTime);
-                        delay1 = TimeSpan.FromSeconds(4);
-                        current += gameTime.ElapsedGameTime;
-                        if (current >= delay1)
+                      
+                        LaserCurrent += gameTime.ElapsedGameTime;
+                        if (LaserCurrent >= delay1 || laser.Scale.Y >= 20)
                         {
                             laser.ResetScale();
-                            current = TimeSpan.Zero;
+                            LaserCurrent = TimeSpan.Zero;
                             activatelaser = false;
 
-                        }
-                        if (playership.Hitbox.Intersects(laser.Hitbox))
+                        }  
+                        else if (playership.Hitbox.Intersects(laser.Hitbox))
                         {
                             PlayerHit = true;
                             Lives--;
+                            LaserCurrent = TimeSpan.Zero;
                             activatelaser = false;
+                            laser.ResetScale();
                         }
                     }
 
@@ -325,11 +405,11 @@ namespace Space_Invaders
                     Boss.Update(gameTime, GraphicsDevice);
                 }
             }
-                if (Lives != 0 && PlayerHit == true && Keyboard.GetState().IsKeyDown(Keys.Enter))
-                {
-                    PlayerHit = false;
-                }
-          
+            if (Lives != 0 && PlayerHit == true && Keyboard.GetState().IsKeyDown(Keys.Enter))
+            {
+                PlayerHit = false;
+            }
+
             base.Update(gameTime);
         }
 
@@ -372,13 +452,12 @@ namespace Space_Invaders
             }
             if (DeadCount == 30)
             {
-                delay = TimeSpan.FromSeconds(10);
-                current += gameTime.ElapsedGameTime;
-                if (current >= delay)
+                delay = TimeSpan.FromSeconds(5);
+                
+                if (ShootBossBullet == true)
                 {
-                    current = TimeSpan.Zero;
+                    BossShot.Draw(spriteBatch);
                 }
-
                 if (bosshp > 0)
                 {
                     Boss.Draw(spriteBatch);
@@ -394,7 +473,7 @@ namespace Space_Invaders
                     laser.Draw(spriteBatch);
                 }
             }
-
+            spriteBatch.DrawString(font, $" current: {current.Seconds}, laser current: {LaserCurrent.Seconds}\n scale: {laser.Scale}", new Vector2(50, 0), Color.Chartreuse);
             playership.Draw(spriteBatch);
             spriteBatch.End();
             base.Draw(gameTime);
